@@ -52,6 +52,12 @@ _Steps 1, 2 and 6 are built and tested; the rest is on the [roadmap](#roadmap)._
 5. Models export to ONNX and serve behind FastAPI within a 50 ms budget.
 6. Offline evaluation reports recall@k and NDCG against a popularity baseline.
 
+## Who it helps
+
+- **Who:** ML engineers building the candidate-retrieval stage of a recommender.
+- **The problem:** Scoring every item for every user is too slow, and a model is only useful if it beats a simple baseline.
+- **How to use it:** Train the two towers on MovieLens 1M, retrieve candidates with FAISS, and compare against the popularity baseline with the included offline evaluation (recall@10 0.083 against 0.048).
+
 ## Tech stack
 
 | Area | In M1 | Planned |
