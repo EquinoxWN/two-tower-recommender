@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=80"]
+requires = ["setuptools>=84.1"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -8,10 +8,10 @@ version = "0.1.0"
 description = "The 'recommended for you' problem, built properly: retrieval, ranking and serving inside a 50ms budget."
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = ["numpy>=2", "torch>=2.9", "faiss-cpu>=1.12"]
+dependencies = ["numpy>=2.4", "torch>=2.9", "faiss-cpu>=1.15"]
 
 [project.optional-dependencies]
-dev = ["pytest>=8", "pytest-timeout>=2.3", "ruff>=0.6", "mypy>=1.11", "pip-audit>=2.7"]
+dev = ["pytest>=9.2", "pytest-timeout>=2.4", "ruff>=0.17", "mypy>=2.4", "pip-audit>=2.10"]
 
 [project.scripts]
 twotower = "two_tower_recommender.cli:main"
