@@ -28,6 +28,8 @@ def test_recall_and_ndcg_on_a_worked_example() -> None:
     dcg_user2 = 1 / math.log2(5)
     assert ndcg_at_k(ranked, truth, 4) == pytest.approx((dcg_user1 / ideal_user1 + dcg_user2) / 2)
     assert ndcg_at_k(np.array([[1, 2]]), [[1, 2]], 2) == pytest.approx(1.0)
+    # Three held-out items but k = 2: a top 2 of two hits is already the best possible.
+    assert ndcg_at_k(np.array([[1, 2, 3]]), [[1, 2, 3]], 2) == pytest.approx(1.0)
 
 
 def test_baselines_skip_seen_items() -> None:

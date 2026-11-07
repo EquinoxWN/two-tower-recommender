@@ -67,6 +67,7 @@ def test_the_split_holds_out_each_users_last_positives(tmp_path: Path) -> None:
     assert sp.test == {0: [2, 3], 2: [0, 1]}
     assert 1 not in sp.test, "user 2 has too few positives to hold any out"
     assert sp.seen[2] == {0, 1, 2, 3}, "everything user 3 rated before the test period is seen"
+    assert sp.seen[0] == {0, 1}, "user 1's held-out items are not marked as already seen"
     for user, held in sp.test.items():
         train_times = ds.times[(ds.users == user) & np.isin(ds.items, list(sp.seen[user]))]
         assert train_times.max() <= ds.times[ds.users == user].max()
@@ -145,3 +146,52 @@ def test_synthetic_data_is_seeded() -> None:
     a, b, c = synthetic(seed=1), synthetic(seed=1), synthetic(seed=2)
     assert np.array_equal(a.items, b.items)
     assert not np.array_equal(a.items, c.items)
+
+
+def test_a_download_of_exactly_the_limit_is_kept(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    payload = b"x" * 10
+    monkeypatch.setattr(data, "MAX_DOWNLOAD_BYTES", 10)
+    monkeypatch.setattr(
+        "two_tower_recommender.data.urllib.request.urlopen",
+        lambda url, timeout: FakeResponse(payload),
+    )
+    dest = tmp_path / "ok.zip"
+    assert (
+        download(dest, "https://example.test/ok.zip", hashlib.sha256(payload).hexdigest()) == dest
+    )
+
+
+def test_a_download_that_fails_midway_leaves_no_partial_file(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    class Broken(FakeResponse):
+        def read(self, n: int | None = -1) -> bytes:
+            raise OSError("connection reset")
+
+    monkeypatch.setattr(
+        "two_tower_recommender.data.urllib.request.urlopen", lambda url, timeout: Broken(b"")
+    )
+    with pytest.raises(OSError, match="connection reset"):
+        download(tmp_path / "x.zip", "https://example.test/x.zip", "0" * 64)
+    assert not (tmp_path / "x.part").exists()
+
+
+@pytest.mark.parametrize(
+    ("name", "text"),
+    [
+        ("users.dat", "1::F\n"),
+        ("users.dat", "1::F::99::10::48067\n"),
+        ("ratings.dat", "1::999::5::100\n"),
+        ("ratings.dat", "1::10::five::100\n"),
+    ],
+)
+def test_malformed_movielens_lines_are_a_data_error(tmp_path: Path, name: str, text: str) -> None:
+    good = tiny_archive(tmp_path / "good.zip")
+    bad = tmp_path / "bad.zip"
+    with zipfile.ZipFile(good) as src, zipfile.ZipFile(bad, "w") as dst:
+        for item in src.namelist():
+            dst.writestr(item, text if item == f"ml-1m/{name}" else src.read(item))
+    with pytest.raises(DataError, match="not a valid MovieLens"):
+        load_movielens(bad)

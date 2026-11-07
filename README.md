@@ -15,7 +15,7 @@ Trained on MovieLens 1M and evaluated on each user's two latest positives, the t
 
 ![MovieLens 1M metrics, latency, and the run without logQ](docs/proof/run.jpg)
 
-23 tests pass (the loss checked against a hand-computed softmax, FAISS against brute force, the time split against leakage, the download against tampering), and the dependency audit is clean:
+23 tests passed at M1 (32 since the [2026-11-01 quality pass](docs/quality/2026-11-01.md)) (the loss checked against a hand-computed softmax, FAISS against brute force, the time split against leakage, the download against tampering), and the dependency audit is clean:
 
 ![pytest and pip-audit output](docs/proof/tests.jpg)
 
@@ -76,7 +76,7 @@ Language: **Python** (3.11+, PyTorch and FAISS). Code in [`src/two_tower_recomme
 python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
 make setup      # install the package and dev tools
 make lint       # ruff, ruff format, mypy --strict
-make test       # 23 tests on synthetic data, no download
+make test       # 32 tests on synthetic data, no download
 make run        # MovieLens 1M: download (verified), train 6 epochs (about 2 minutes on a laptop CPU), evaluate
 make ablation   # the same without the logQ popularity correction
 ```
@@ -89,7 +89,8 @@ Full numbers and the analysis: [docs/results/m1.md](docs/results/m1.md).
 
 | Check | Result |
 |---|---|
-| Tests (`make test`) | **23 passed**, 0 failed |
+| Tests (`make test`) | **32 passed**, 0 failed |
+| Quality pass | 14 hand mutations: 11 killed before, all 14 after; three more on the new input checks, all killed: [docs/quality/2026-11-01.md](docs/quality/2026-11-01.md) |
 | MovieLens 1M, recall@10 | two-tower **0.083**, popularity 0.048, random 0.002 |
 | MovieLens 1M, recall@500 (the candidate set) | two-tower **0.789**, popularity 0.595 |
 | NDCG@10 | two-tower 0.050, popularity 0.029 |
@@ -101,11 +102,11 @@ Full numbers and the analysis: [docs/results/m1.md](docs/results/m1.md).
 
 ```mermaid
 flowchart TB
-  D["test_data (7)<br/>parsing, time split, verified download"] --> DA["data.py"]
+  D["test_data (13)<br/>parsing, malformed files, time split,<br/>verified download, no partial files"] --> DA["data.py"]
   M["test_model (6)<br/>loss vs hand-computed softmax,<br/>logQ, masking, reproducibility"] --> MO["model.py, train.py"]
   R["test_retrieval (5)<br/>FAISS = brute force, seen items,<br/>HNSW overlap"] --> RE["retrieval.py"]
   E["test_evaluate (3)<br/>metrics, baselines, planted data"] --> EV["evaluate.py"]
-  C["test_cli (2)"] --> CL["cli.py"]
+  C["test_cli (5)<br/>incl. epoch range"] --> CL["cli.py"]
 ```
 
 ## Roadmap
@@ -146,6 +147,7 @@ What this repo must show before it counts as done:
 - [ADR 0002: in-batch negatives with logQ correction](docs/adr/0002-in-batch-negatives-with-logq-correction.md)
 - [ADR 0003: time split and exact FAISS for M1](docs/adr/0003-time-split-and-exact-faiss-for-m1.md)
 - [M1 results](docs/results/m1.md)
+- [Quality check 2026-11-01](docs/quality/2026-11-01.md)
 
 ## Scope
 

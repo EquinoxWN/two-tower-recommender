@@ -25,3 +25,10 @@ def test_a_bad_archive_exits_with_2(
     monkeypatch.setattr("two_tower_recommender.cli.download", lambda path: path)
     assert main(["--data", str(bad)]) == 2
     assert "not a zip" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("epochs", ["0", "-1", "1001"])
+def test_an_epoch_count_out_of_range_is_refused(epochs: str) -> None:
+    with pytest.raises(SystemExit) as exc:
+        main(["--synthetic", "--epochs", epochs])
+    assert exc.value.code == 2

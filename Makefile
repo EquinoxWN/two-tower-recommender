@@ -9,7 +9,7 @@ setup:
 lint:
 	$(PY) -m ruff check . && $(PY) -m ruff format --check . && $(PY) -m mypy
 
-# 23 tests on synthetic data with planted preferences (no download needed).
+# 32 tests on synthetic data with planted preferences (no download needed).
 test:
 	$(PY) -m pytest -q
 
