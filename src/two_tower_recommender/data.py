@@ -62,15 +62,18 @@ def download(dest: Path, url: str = ML_1M_URL, expected_sha256: str = ML_1M_SHA2
         raise DataError(f"refusing to download over anything but https: {url}")
     dest.parent.mkdir(parents=True, exist_ok=True)
     tmp = dest.with_suffix(".part")
-    with urllib.request.urlopen(url, timeout=60) as r, tmp.open("wb") as f:  # noqa: S310 - https only
-        size = 0
-        while chunk := r.read(1 << 20):
-            size += len(chunk)
-            if size > MAX_DOWNLOAD_BYTES:
-                f.close()
-                tmp.unlink()
-                raise DataError(f"download larger than {MAX_DOWNLOAD_BYTES} bytes")
-            f.write(chunk)
+    try:
+        with urllib.request.urlopen(url, timeout=60) as r, tmp.open("wb") as f:  # noqa: S310 - https only
+            size = 0
+            while chunk := r.read(1 << 20):
+                size += len(chunk)
+                if size > MAX_DOWNLOAD_BYTES:
+                    raise DataError(f"download larger than {MAX_DOWNLOAD_BYTES} bytes")
+                f.write(chunk)
+    except BaseException:
+        # A failed or cut-off download leaves no partial file behind.
+        tmp.unlink(missing_ok=True)
+        raise
     got = sha256(tmp)
     if got != expected_sha256:
         tmp.unlink()
@@ -98,6 +101,14 @@ def load_movielens(path: Path) -> Dataset:
         users = _lines(z, "users.dat")
         movies = _lines(z, "movies.dat")
         ratings = _lines(z, "ratings.dat")
+    try:
+        return _parse(users, movies, ratings)
+    except (IndexError, KeyError, ValueError) as e:
+        # A short line, an unknown id or a non-number: say so instead of a traceback.
+        raise DataError(f"{path} is not a valid MovieLens 1M archive: {e!r}") from e
+
+
+def _parse(users: list[list[str]], movies: list[list[str]], ratings: list[list[str]]) -> Dataset:
     uid = {int(u[0]): i for i, u in enumerate(users)}
     occ = np.array([int(u[3]) for u in users], dtype=np.int64)
     gender = np.array([1 if u[1] == "F" else 0 for u in users], dtype=np.int64)

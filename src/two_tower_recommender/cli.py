@@ -36,6 +36,8 @@ def main(argv: list[str] | None = None) -> int:
         "--no-logq", action="store_true", help="train without the popularity (logQ) correction"
     )
     args = p.parse_args(argv)
+    if not 1 <= args.epochs <= 1000:
+        p.error("--epochs must be 1 to 1000")
     t0 = time.perf_counter()
     try:
         ds = synthetic(seed=args.seed) if args.synthetic else load_movielens(download(args.data))
